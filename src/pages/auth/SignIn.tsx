@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { LoginErrors, LoginForm } from "../../types/sign-in";
-import { useSelector } from "react-redux";
-import Form from "../../components/dynamic-form";
+import type { LoginErrors, LoginForm } from "../../types/SignIn";
+import { useDispatch, useSelector } from "react-redux";
+import Form from "../../components/DynamicForm";
 import { Alert, Snackbar } from "@mui/material";
+import { getUsers } from "../../services/user.service";
+import type { AppDispatch, RootState } from "../../store/store";
 
 const LoginPage: React.FC = () => {
   const [form, setForm] = useState<LoginForm>({
@@ -11,7 +13,8 @@ const LoginPage: React.FC = () => {
     password: "",
     captchaChecked: false,
   });
-  const users = useSelector((state: any) => state.user.list);
+  const dispatch = useDispatch<AppDispatch>();
+  const users = useSelector((state: RootState) => state.user.list);
   const [errors, setErrors] = useState<LoginErrors>({});
   const [toast, setToast] = useState({
     open: false,
@@ -19,17 +22,21 @@ const LoginPage: React.FC = () => {
   });
   const navigate = useNavigate();
   const [formConfig] = useState([
-    { name: "email", label: "Email" },
+    { name: "email", label: "Email or Username" },
     { name: "password", label: "Password", type: "password" },
   ]);
 
+  useEffect(() => {
+    dispatch(getUsers());
+  }, [dispatch]);
+
   const handleSubmit = () => {
     const newErrors: LoginErrors = {};
-    const normalizedEmail = form.email.trim().toLowerCase();
+    const loginId = form.email.trim().toLowerCase();
 
-    if (!normalizedEmail) {
-      newErrors.email = "Email is required";
-    } else if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+    if (!loginId) {
+      newErrors.email = "Email or username is required";
+    } else if (loginId.includes("@") && !/^\S+@\S+\.\S+$/.test(loginId)) {
       newErrors.email = "Invalid email format";
     }
 
@@ -51,7 +58,10 @@ const LoginPage: React.FC = () => {
     }
 
     const matchedUser = users.find(
-      (u: any) => u.email.toLowerCase() === normalizedEmail && u.password === form.password
+      (u) =>
+        (u.email.toLowerCase() === loginId ||
+          u.username.toLowerCase() === loginId) &&
+        u.password === form.password
     );
 
     if (!matchedUser) {

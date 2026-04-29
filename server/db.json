@@ -1,0 +1,65 @@
+{
+  "users": [
+    {
+      "id": "qQesFPSZtOU",
+      "name": "akshay",
+      "username": "akshay",
+      "email": "akshay@gmail.com",
+      "contact": "9604118342",
+      "password": "Akshay@123",
+      "deadline": ""
+    },
+    {
+      "id": "onkMbxNDopI",
+      "name": "abc",
+      "username": "abc",
+      "email": "abc@gmail.com",
+      "contact": "9604118342",
+      "password": "abc@123",
+      "deadline": ""
+    },
+    {
+      "id": "0QBrQS6zcM4",
+      "name": "akshat",
+      "username": "akshat123",
+      "email": "akshat@gmail.com",
+      "contact": "9604118342",
+      "password": "akshay@123"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "HAtwiumniJM",
+      "userEmail": "akshay@gmail.com",
+      "stage": 3,
+      "title": "Akshay",
+      "priority": "High",
+      "deadline": "2026-04-30"
+    },
+    {
+      "id": "Cf5wlXfD4hk",
+      "userEmail": "akshay@gmail.com",
+      "stage": 1,
+      "title": "abc",
+      "priority": "High",
+      "deadline": "2026-04-30"
+    },
+    {
+      "id": "B4z6QRu4jMA",
+      "userEmail": "akshat@gmail.com",
+      "stage": 3,
+      "title": "task 1",
+      "priority": "Medium",
+      "deadline": "2026-04-30"
+    },
+    {
+      "id": "IdlLMEl6Z8Q",
+      "userEmail": "akshat@gmail.com",
+      "stage": 0,
+      "title": "read booka",
+      "priority": "Low",
+      "deadline": "2026-05-02"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}

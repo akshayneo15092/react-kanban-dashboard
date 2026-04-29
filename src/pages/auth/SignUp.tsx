@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { RegistrationErrors, RegistrationForm } from "../../types/sign-up";
+import type { RegistrationErrors, RegistrationForm } from "../../types/SignUp";
 import { useDispatch, useSelector } from "react-redux";
-import { addUser } from "../../slices/user-slice";
-import Form from "../../components/dynamic-form";
+import { getUsers, createUser } from "../../services/user.service";
+import Form from "../../components/DynamicForm";
 import { Alert, Snackbar } from "@mui/material";
+import type { AppDispatch, RootState } from "../../store/store";
 
 const formConfig = [
   { name: "name", label: "Name" },
@@ -30,12 +31,16 @@ const RegistrationPage: React.FC = () => {
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const users = useSelector((state: any) => state.user.list);
+  const dispatch = useDispatch<AppDispatch>();
+  const users = useSelector((state: RootState) => state.user.list);
   const validateEmail = (email: string) => /^\S+@\S+\.\S+$/.test(email);
   const validateContact = (contact: string) => /^[6-9]\d{9}$/.test(contact);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    dispatch(getUsers());
+  }, [dispatch]);
+
+  const handleSubmit = async () => {
     const newErrors: RegistrationErrors = {};
     const normalizedEmail = form.email.trim().toLowerCase();
 
@@ -73,23 +78,30 @@ const RegistrationPage: React.FC = () => {
       return;
     }
 
-    dispatch(
-      addUser({
-        name: form.name.trim(),
-        username: form.username.trim(),
-        email: normalizedEmail,
-        contact: form.contact.trim(),
-        password: form.password,
-        deadline: form.date,
-      })
-      
-    );
-    setToast({
-      open: true,
-      message: "Account created successfully.",
-      severity: "success",
-    });
-    setTimeout(() => navigate("/"), 700);
+    try {
+      await dispatch(
+        createUser({
+          id: Date.now().toString(),
+          name: form.name.trim(),
+          username: form.username.trim(),
+          email: normalizedEmail,
+          contact: form.contact.trim(),
+          password: form.password,
+        })
+      );
+      setToast({
+        open: true,
+        message: "Account created successfully.",
+        severity: "success",
+      });
+      setTimeout(() => navigate("/"), 700);
+    } catch {
+      setToast({
+        open: true,
+        message: "Unable to create account. Make sure JSON Server is running.",
+        severity: "error",
+      });
+    }
   };
 
   return (

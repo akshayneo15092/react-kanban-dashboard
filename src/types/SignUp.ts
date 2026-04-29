@@ -4,7 +4,7 @@ export interface RegistrationForm {
   email: string;
   contact: string;
   date?:string;
-  password: string;
+  password?: string;
 }
 
 export interface RegistrationErrors {

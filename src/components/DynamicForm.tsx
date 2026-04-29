@@ -9,7 +9,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
-import type { AuthFormProps } from "../types/form-interface";
+import type { AuthFormProps } from "../types/FormInterface";
 
 const Form: React.FC<AuthFormProps> = ({
   title,

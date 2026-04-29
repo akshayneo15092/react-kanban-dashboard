@@ -1,4 +1,4 @@
-import React, { useState, useTransition } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import {
   AppBar,
   Box,
@@ -30,21 +30,17 @@ import {
  
 } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
-import Form from "../../components/dynamic-form";
-import {
-  addToDo,
-  deleteToDo,
-  updateToDo,
-  moveToDo,
-} from "../../slices/todo-slice";
+import Form from "../../components/DynamicForm";
 import type {
   Stage,
   Task,
   TaskForm,
   TaskFormErrors,
   User,
-} from "../../types/task-board";
+} from "../../types/TaskBoard";
 import { useNavigate } from "react-router-dom";
+import type { AppDispatch, RootState } from "../../store/store";
+import { fetchTasks, createTask, editTask, removeTask as removeTaskService, changeStage } from "../../services/task.service";
 
 const STAGES: { label: string; value: Stage }[] = [
   { label: "Backlog", value: 0 },
@@ -69,11 +65,11 @@ const taskFormConfig = [
 ];
 
 const TaskBoard: React.FC = () => {
-  const dispatch = useDispatch();
-  const tasks = useSelector((state: any) => state.tasklist.list);
-  const currentUser = JSON.parse(
-    localStorage.getItem("currentUser") || "null"
-  ) as User | null;
+  const dispatch = useDispatch<AppDispatch>();
+  const tasks = useSelector((state: RootState) => state.tasklist.list);
+  const [currentUser] = useState<User | null>(() =>
+    JSON.parse(localStorage.getItem("currentUser") || "null")
+  );
   const userTasks = tasks.filter(
     (task: Task) => task.userEmail === currentUser?.email
   );
@@ -98,6 +94,10 @@ const TaskBoard: React.FC = () => {
     deadline: "",
   });
 
+  useEffect(() => {
+    dispatch(fetchTasks());
+  }, [dispatch]);
+
   const openAddTask = () => {
     setEditingTask(null);
     setTaskForm({ title: "", priority: "Low", deadline: "" });
@@ -116,7 +116,7 @@ const TaskBoard: React.FC = () => {
     setOpenForm(true);
   };
 
-  const submitTask = () => {
+  const submitTask = async () => {
     const newErrors: TaskFormErrors = {};
     const normalizedTitle = taskForm.title.trim().toLowerCase();
     const today = new Date();
@@ -158,34 +158,35 @@ const TaskBoard: React.FC = () => {
     }
 
     if (editingTask) {
-      dispatch(
-        updateToDo({
-          ...editingTask,
-          ...taskForm,
-          title: taskForm.title.trim(),
-        })
-      );
-      setToast({
-        open: true,
-        message: "Task updated successfully.",
-        severity: "success",
-      });
+      try {
+        await dispatch(
+          editTask({
+            ...editingTask,
+            ...taskForm,
+            title: taskForm.title.trim(),
+          })
+        );
+        setToast({ open: true, message: "Task updated successfully.", severity: "success" });
+      } catch {
+        setToast({ open: true, message: "Unable to update task. Make sure JSON Server is running.", severity: "error" });
+        return;
+      }
     } else {
-      dispatch(
-        addToDo({
-          id: Date.now().toString(),
-          userEmail: currentUser?.email || "",
-          stage: 0,
-          ...taskForm,
-          title: taskForm.title.trim(),
-        })
-      );
-      setToast({
-        open: true,
-        message: "Task created successfully.",
-        severity: "success",
-      });
-     
+      try {
+        await dispatch(
+          createTask({
+            id: Date.now().toString(),
+            userEmail: currentUser?.email || "",
+            stage: 0,
+            ...taskForm,
+            title: taskForm.title.trim(),
+          })
+        );
+        setToast({ open: true, message: "Task created successfully.", severity: "success" });
+      } catch {
+        setToast({ open: true, message: "Unable to create task. Make sure JSON Server is running.", severity: "error" });
+        return;
+      }
     }
 
     setOpenForm(false);
@@ -193,27 +194,23 @@ const TaskBoard: React.FC = () => {
     setTaskErrors({});
   };
 
-  const removeTask = (id: string) => {
-    dispatch(deleteToDo(id));
-    setToast({
-      open: true,
-      message: "Task deleted successfully.",
-      severity: "success",
-    });
+  const removeTask = async (id: string) => {
+    try {
+      await dispatch(removeTaskService(id));
+      setToast({ open: true, message: "Task deleted successfully.", severity: "success" });
+    } catch {
+      setToast({ open: true, message: "Unable to delete task. Make sure JSON Server is running.", severity: "error" });
+    }
   };
 
-  const moveTask = (task: Task, dir: "back" | "forward") => {
+  const moveTask = async (task: Task, dir: "back" | "forward") => {
     const newStage =
       dir === "back"
         ? Math.max(0, task.stage - 1)
         : Math.min(3, task.stage + 1);
 
-    dispatch(moveToDo({ id: task.id, stage: newStage as Stage }));
-    setToast({
-      open: true,
-      message: `Task moved to ${STAGES.find((stage) => stage.value === newStage)?.label}.`,
-      severity: "info",
-    });
+    await dispatch(changeStage(task, newStage as Stage));
+    setToast({ open: true, message: `Task moved to ${STAGES.find((stage) => stage.value === newStage)?.label}.`, severity: "info" });
   };
 
   const onDragStart = (id: string) => {
@@ -226,14 +223,12 @@ const TaskBoard: React.FC = () => {
     setShowTrash(false);
   };
 
-  const onDropStage = (stage: Stage) => {
+  const onDropStage = async (stage: Stage) => {
     if (!draggedTaskId) return;
-    dispatch(moveToDo({ id: draggedTaskId, stage }));
-    setToast({
-      open: true,
-      message: `Task moved to ${STAGES.find((item) => item.value === stage)?.label}.`,
-      severity: "info",
-    });
+    const draggedTask = tasks.find((t: Task) => t.id === draggedTaskId);
+    if (!draggedTask) return;
+    await dispatch(changeStage(draggedTask, stage));
+    setToast({ open: true, message: `Task moved to ${STAGES.find((item) => item.value === stage)?.label}.`, severity: "info" });
     onDragEnd();
   };
   const filteredTasks = userTasks.filter((task: Task) =>

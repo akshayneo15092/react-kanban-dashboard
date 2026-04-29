@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   Container,
@@ -22,17 +22,20 @@ import {
   Logout,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
-import type { Task, User } from "../../types/task-board";
+import type { Task, User } from "../../types/TaskBoard";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../store/store";
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
-  const currentUser = JSON.parse(
-    localStorage.getItem("currentUser") || "null"
-  ) as User | null;
+  const tasks = useSelector((state: RootState) => state.tasklist.list);
+  const [currentUser] = useState<User | null>(() =>
+    JSON.parse(localStorage.getItem("currentUser") || "null")
+  );
 
-  const usersTasks: Task[] = JSON.parse(
-    localStorage.getItem("tasks") || "[]"
-  ).filter((task: Task) => task.userEmail === currentUser?.email);
+  const usersTasks: Task[] = tasks.filter(
+    (task: Task) => task.userEmail === currentUser?.email
+  );
   const completedLength = usersTasks.filter((u: Task) => u.stage === 3).length;
   const pendingLength = usersTasks.filter((u: Task) => u.stage !== 3).length;
   const upcomingTasks = usersTasks.slice(0, 5);
