@@ -2,6 +2,7 @@ export type Stage = 0 | 1 | 2 | 3;
 
 export interface Task {
   id: string;
+  userEmail: string;
   title: string;
   priority: "Low" | "Medium" | "High";
   deadline: string;
@@ -17,6 +18,12 @@ export interface TaskForm {
   title: string;
   priority: "Low" | "Medium" | "High";
   deadline: string;
+}
+
+export interface TaskFormErrors {
+  title?: string;
+  priority?: string;
+  deadline?: string;
 }
 
 export interface User {

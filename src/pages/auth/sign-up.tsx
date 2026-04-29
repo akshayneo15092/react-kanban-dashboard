@@ -1,15 +1,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { RegistrationErrors, RegistrationForm } from "../../types/sign-up";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { addUser } from "../../slices/user-slice";
 import Form from "../../components/dynamic-form";
+import { Alert, Snackbar } from "@mui/material";
 
 const formConfig = [
   { name: "name", label: "Name" },
   { name: "username", label: "Username" },
   { name: "email", label: "Email" },
-  { name: "contact", label: "Contact Number" },
+  { name: "contact", label: "Contact Number", type: "tel" },
   { name: "password", label: "Password", type: "password" },
 ];
 const RegistrationPage: React.FC = () => {
@@ -20,24 +21,39 @@ const RegistrationPage: React.FC = () => {
     contact: "",
     password: "",
     date: "",
-    terms: false,
   });
 
   const [errors, setErrors] = useState<RegistrationErrors>({});
+  const [toast, setToast] = useState<{
+    open: boolean;
+    message: string;
+    severity: "success" | "error";
+  }>({ open: false, message: "", severity: "success" });
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const users = useSelector((state: any) => state.user.list);
   const validateEmail = (email: string) => /^\S+@\S+\.\S+$/.test(email);
+  const validateContact = (contact: string) => /^[6-9]\d{9}$/.test(contact);
 
   const handleSubmit = () => {
     const newErrors: RegistrationErrors = {};
+    const normalizedEmail = form.email.trim().toLowerCase();
 
-    if (!form.name) newErrors.name = "Name is required";
-    if (!form.username) newErrors.username = "Username is required";
+    if (!form.name.trim()) newErrors.name = "Name is required";
+    if (!form.username.trim()) newErrors.username = "Username is required";
 
-    if (!form.email) {
+    if (!normalizedEmail) {
       newErrors.email = "Email is required";
-    } else if (!validateEmail(form.email)) {
+    } else if (!validateEmail(normalizedEmail)) {
       newErrors.email = "Invalid email format";
+    } else if (users.some((user: any) => user.email.toLowerCase() === normalizedEmail)) {
+      newErrors.email = "An account with this email already exists";
+    }
+
+    if (!form.contact.trim()) {
+      newErrors.contact = "Contact number is required";
+    } else if (!validateContact(form.contact.trim())) {
+      newErrors.contact = "Enter a valid 10-digit contact number";
     }
 
     if (!form.password) {
@@ -46,39 +62,69 @@ const RegistrationPage: React.FC = () => {
       newErrors.password = "Password must be at least 6 characters";
     }
 
-    if (!form.terms) {
-      newErrors.terms = "You must agree to the terms";
-    }
-
     setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      setToast({
+        open: true,
+        message: "Please fix the highlighted signup fields.",
+        severity: "error",
+      });
+      return;
+    }
 
     dispatch(
       addUser({
-        name: form.name,
-        username: form.username,
-        email: form.email,
-        contact: form.contact,
+        name: form.name.trim(),
+        username: form.username.trim(),
+        email: normalizedEmail,
+        contact: form.contact.trim(),
         password: form.password,
         deadline: form.date,
       })
       
     );
-    navigate("/");
+    setToast({
+      open: true,
+      message: "Account created successfully.",
+      severity: "success",
+    });
+    setTimeout(() => navigate("/"), 700);
   };
 
   return (
+    <>
     <Form
       title="Create Account"
       fields={formConfig}
       values={form}
       errors={errors}
-      onChange={(name, value) => setForm({ ...form, [name]: value })}
+      onChange={(name, value) => {
+        setForm({ ...form, [name]: value });
+        setErrors({ ...errors, [name]: undefined });
+      }}
       onSubmit={() => handleSubmit()}
       submitText="Sign up"
       footerText="Don't have an account?"
       footerActionText="Login"
       onFooterAction={() => navigate("/")}
     />
+    <Snackbar
+      open={toast.open}
+      autoHideDuration={3000}
+      onClose={() => setToast({ ...toast, open: false })}
+      anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+    >
+      <Alert
+        severity={toast.severity}
+        variant="filled"
+        onClose={() => setToast({ ...toast, open: false })}
+        sx={{ width: "100%" }}
+      >
+        {toast.message}
+      </Alert>
+    </Snackbar>
+    </>
   );
 };
 
